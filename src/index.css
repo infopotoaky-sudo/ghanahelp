@@ -261,6 +261,27 @@ body {
   animation: float-y 5.5s ease-in-out infinite;
 }
 
+@keyframes travel-x {
+  0% {
+    left: 12%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    left: 85%;
+    opacity: 0;
+  }
+}
+.animate-travel {
+  position: absolute;
+  animation: travel-x 3.6s ease-in-out infinite;
+}
+
 .marquee-track {
   display: flex;
   width: max-content;
@@ -291,6 +312,7 @@ body {
   .animate-pulse-ring,
   .animate-typing-dot,
   .animate-heart-pop,
+  .animate-travel,
   .animate-tip {
     animation: none;
   }

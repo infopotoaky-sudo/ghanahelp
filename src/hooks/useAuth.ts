@@ -1,80 +1,55 @@
 import { useEffect, useState } from "react";
 
 /**
- * Frontend-only demo auth. The session lives in localStorage on this device —
- * no passwords are stored and nothing leaves the browser. Swap this hook's
- * internals for Supabase Auth later; the call sites stay the same.
+ * Demo auth state — lives only in this browser (localStorage) and syncs
+ * across components via a custom event. Real accounts (OTP, Supabase
+ * auth, MoMo-linked profiles) arrive in Phase 2; this hook is the swap point.
  */
 export interface AuthUser {
-  id: string;
   name: string;
-  contact: string;
-  createdAt: string;
+  firstName: string;
+  contact: string; // email or phone
+  joinedAt: string;
 }
 
-const SESSION_KEY = "ghh:session";
-const EVT = "ghh:auth-changed";
+const KEY = "ghh:user";
+const EVT = "ghh:user-changed";
 
-function readSession(): AuthUser | null {
+function read(): AuthUser | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(KEY);
     return raw ? (JSON.parse(raw) as AuthUser) : null;
   } catch {
     return null;
   }
 }
 
-function notify() {
-  window.dispatchEvent(new Event(EVT));
-}
-
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(readSession);
+  const [user, setUser] = useState<AuthUser | null>(read);
 
   useEffect(() => {
-    const sync = () => setUser(readSession());
+    const sync = () => setUser(read());
     window.addEventListener(EVT, sync);
     return () => window.removeEventListener(EVT, sync);
   }, []);
 
-  const login = (input: { name: string; contact: string }) => {
-    const next: AuthUser = {
-      id: `usr_${Math.random().toString(36).slice(2, 9)}`,
-      name: input.name,
-      contact: input.contact,
-      createdAt: new Date().toISOString(),
-    };
+  const login = (u: AuthUser) => {
     try {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+      localStorage.setItem(KEY, JSON.stringify(u));
     } catch {
-      /* storage unavailable — session stays in memory */
+      /* storage unavailable */
     }
-    notify();
-    return next;
+    window.dispatchEvent(new Event(EVT));
   };
 
   const logout = () => {
     try {
-      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(KEY);
     } catch {
-      /* noop */
+      /* storage unavailable */
     }
-    notify();
+    window.dispatchEvent(new Event(EVT));
   };
 
-  return {
-    user,
-    firstName: user ? (user.name.split(" ")[0] ?? null) : null,
-    initials: user
-      ? user.name
-          .split(" ")
-          .filter(Boolean)
-          .map((p) => p[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase()
-      : "",
-    login,
-    logout,
-  };
+  return { user, login, logout, firstName: user?.firstName ?? null };
 }

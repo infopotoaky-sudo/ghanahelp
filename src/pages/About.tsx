@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   HeartHandshake,
   ShieldCheck,
@@ -7,6 +8,7 @@ import {
   Database,
   Rocket,
   CheckCircle2,
+  ArrowRight,
 } from "lucide-react";
 import Button from "../components/Button";
 import Reveal from "../components/Reveal";
