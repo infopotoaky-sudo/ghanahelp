@@ -13,6 +13,7 @@ const explore = [
 const forBusinesses = [
   { label: "List Your Business", to: "/businesses#list-my-business" },
   { label: "Business Benefits", to: "/about" },
+  { label: "How GHH Makes Money", to: "/how-we-earn" },
 ];
 
 const company = [

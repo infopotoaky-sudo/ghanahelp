@@ -13,6 +13,7 @@ const JobDetails = lazy(() => import("./pages/JobDetails"));
 const Opportunities = lazy(() => import("./pages/Opportunities"));
 const LostFound = lazy(() => import("./pages/LostFound"));
 const About = lazy(() => import("./pages/About"));
+const HowWeEarn = lazy(() => import("./pages/HowWeEarn"));
 const Contact = lazy(() => import("./pages/Contact"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/opportunities" element={<Opportunities />} />
             <Route path="/lost-found" element={<LostFound />} />
             <Route path="/about" element={<About />} />
+            <Route path="/how-we-earn" element={<HowWeEarn />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="*" element={<NotFound />} />
           </Route>

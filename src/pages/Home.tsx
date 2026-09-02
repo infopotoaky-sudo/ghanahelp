@@ -49,6 +49,7 @@ import type {
 import { media } from "../lib/media";
 import { cn, timeAgo } from "../lib/utils";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { useAuth } from "../hooks/useAuth";
 
 const searchExamples = [
   "Electrician in Amasaman",
@@ -102,6 +103,7 @@ export default function Home() {
     }
   });
   const [cityOpen, setCityOpen] = useState(false);
+  const { firstName } = useAuth();
 
   const dayPart = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
@@ -181,7 +183,7 @@ export default function Home() {
             <div className="animate-fade-up max-w-2xl">
               <p className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-brand-600 uppercase">
                 <span className="kente inline-block h-1 w-8 rounded-full" aria-hidden="true" />
-                Akwaaba — good {dayPart}
+                Akwaaba{firstName ? `, ${firstName}` : ""} — good {dayPart}
               </p>
               <h1 className="font-display mt-3 text-[2rem] leading-[1.1] font-extrabold tracking-tight text-ink-900 text-balance sm:text-4xl lg:text-[2.9rem]">
                 Whatever you need in <span className="text-brand-600">Ghana</span>,{" "}

@@ -255,6 +255,19 @@ export default function About() {
             </p>
           </Reveal>
 
+          <Reveal delay={80}>
+            <p className="mt-4 text-center text-sm font-semibold text-ink-500">
+              Wondering how this stays sustainable?{" "}
+              <Link
+                to="/how-we-earn"
+                className="group inline-flex items-center gap-1 font-bold text-brand-700 transition-colors hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                See how GHH makes money
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </Link>
+            </p>
+          </Reveal>
+
           <Reveal className="mt-12">
             <DemoVideo
               src={media.demoVideoTwo}
