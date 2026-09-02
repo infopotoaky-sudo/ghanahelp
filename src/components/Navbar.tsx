@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { Menu, X, Megaphone, Store } from "lucide-react";
+import { Menu, X, Megaphone, Store, Heart } from "lucide-react";
 import Logo from "./Logo";
 import Button from "./Button";
+import SavedModal from "./SavedModal";
+import { useFavorites } from "../hooks/useFavorites";
 import { cn } from "../lib/utils";
 
 const navLinks = [
@@ -16,6 +18,8 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
+  const { count } = useFavorites();
   const location = useLocation();
 
   useEffect(() => {
@@ -70,6 +74,7 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden items-center gap-2.5 lg:flex">
+            <SavedButton count={count} onOpen={() => setSavedOpen(true)} />
             <Button to="/businesses#list-my-business" variant="outline" size="sm">
               <Store className="h-4 w-4" aria-hidden="true" />
               List My Business
@@ -80,15 +85,18 @@ export default function Navbar() {
             </Button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={open}
-            className="rounded-xl p-2 text-ink-700 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden"
-          >
-            <Menu className="h-6 w-6" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-1 lg:hidden">
+            <SavedButton count={count} onOpen={() => setSavedOpen(true)} />
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={open}
+              className="rounded-xl p-2 text-ink-700 transition-colors hover:bg-ink-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            >
+              <Menu className="h-6 w-6" aria-hidden="true" />
+            </button>
+          </div>
         </div>
         <div className="kente h-0.5 w-full opacity-70" aria-hidden="true" />
       </header>
@@ -195,6 +203,29 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      <SavedModal open={savedOpen} onClose={() => setSavedOpen(false)} />
     </>
+  );
+}
+
+function SavedButton({ count, onOpen }: { count: number; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Saved items (${count})`}
+      className="relative rounded-xl p-2 text-ink-700 transition-colors hover:bg-ink-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+    >
+      <Heart className="h-5.5 w-5.5" aria-hidden="true" />
+      {count > 0 && (
+        <span
+          key={count}
+          className="animate-pop absolute -top-0.5 -right-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-extrabold text-white ring-2 ring-white"
+        >
+          {count}
+        </span>
+      )}
+    </button>
   );
 }

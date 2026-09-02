@@ -241,6 +241,22 @@ body {
   }
 }
 
+@keyframes heart-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  45% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heart-pop {
+  animation: heart-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .animate-float {
   animation: float-y 5.5s ease-in-out infinite;
 }
@@ -274,6 +290,7 @@ body {
   .animate-kenburns,
   .animate-pulse-ring,
   .animate-typing-dot,
+  .animate-heart-pop,
   .animate-tip {
     animation: none;
   }

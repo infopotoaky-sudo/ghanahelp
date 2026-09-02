@@ -1,41 +1,54 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Megaphone,
   Store,
   ArrowRight,
   BadgeCheck,
-  MessageCircle,
   PenLine,
   Compass,
   HeartHandshake,
   Radio,
   Flag,
   PackageSearch,
+  MapPin,
+  ChevronDown,
 } from "lucide-react";
 import SearchBar from "../components/SearchBar";
 import SectionHeader from "../components/SectionHeader";
-import CategoryCard from "../components/CategoryCard";
 import BusinessCard from "../components/BusinessCard";
 import JobCard from "../components/JobCard";
 import OpportunityCard from "../components/OpportunityCard";
 import RequestCard from "../components/RequestCard";
 import LostFoundCard from "../components/LostFoundCard";
 import Button from "../components/Button";
+import Badge from "../components/Badge";
 import Reveal from "../components/Reveal";
 import BusinessCta from "../components/BusinessCta";
 import FinalCta from "../components/FinalCta";
-import DemoVideo from "../components/DemoVideo";
-import { media } from "../lib/media";
+import BannerCarousel from "../components/BannerCarousel";
+import Carousel from "../components/Carousel";
+import ListingTile, { HeartToggle } from "../components/ListingTile";
+import CityPicker from "../components/CityPicker";
+import EmptyState from "../components/EmptyState";
 import { categories, popularSearches } from "../data/categories";
-import { getFeaturedBusinesses } from "../services/businesses";
+import { getBusinesses } from "../services/businesses";
 import { getLatestJobs } from "../services/jobs";
 import { getOpportunities } from "../services/opportunities";
 import { getLostFoundItems } from "../services/lostFound";
 import { getRecentRequests } from "../services/requests";
-import type { Business, Job, Opportunity, LostFoundItem, HelpRequest } from "../types";
+import { useFavorites } from "../hooks/useFavorites";
+import type {
+  Business,
+  Job,
+  Opportunity,
+  LostFoundItem,
+  HelpRequest,
+  RequestStatus,
+} from "../types";
+import { media } from "../lib/media";
+import { cn, timeAgo } from "../lib/utils";
 import { usePageMeta } from "../hooks/usePageMeta";
-import { cn } from "../lib/utils";
 
 const searchExamples = [
   "Electrician in Amasaman",
@@ -55,6 +68,18 @@ const marqueeNeeds = [
   "I need a tutor for WASSCE",
 ];
 
+const askStatus: Record<RequestStatus, { label: string; variant: "gold" | "green" | "slate" }> = {
+  open: { label: "Looking for help", variant: "gold" },
+  "in-progress": { label: "Being matched", variant: "green" },
+  resolved: { label: "Resolved", variant: "slate" },
+};
+
+const tileTints = [
+  "bg-brand-50 text-brand-600 ring-brand-100",
+  "bg-gold-100 text-gold-700 ring-gold-200",
+  "bg-ink-100 text-ink-700 ring-ink-200",
+];
+
 export default function Home() {
   usePageMeta(
     "Ghana Help Hub | Whatever You Need in Ghana, Start Here",
@@ -63,12 +88,22 @@ export default function Home() {
 
   const navigate = useNavigate();
   const [example, setExample] = useState(0);
+  const [hour] = useState(() => new Date().getHours());
   const [businesses, setBusinesses] = useState<Business[] | null>(null);
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[] | null>(null);
   const [lostFound, setLostFound] = useState<LostFoundItem[] | null>(null);
   const [requests, setRequests] = useState<HelpRequest[] | null>(null);
-  const [feedIndex, setFeedIndex] = useState(0);
+  const [city, setCity] = useState<string>(() => {
+    try {
+      return localStorage.getItem("ghh:city") ?? "All Ghana";
+    } catch {
+      return "All Ghana";
+    }
+  });
+  const [cityOpen, setCityOpen] = useState(false);
+
+  const dayPart = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
   useEffect(() => {
     const t = setInterval(() => setExample((i) => (i + 1) % searchExamples.length), 2600);
@@ -78,8 +113,8 @@ export default function Home() {
   useEffect(() => {
     let active = true;
     Promise.all([
-      getFeaturedBusinesses(6),
-      getLatestJobs(4),
+      getBusinesses(),
+      getLatestJobs(6),
       getOpportunities(),
       getLostFoundItems(),
       getRecentRequests(5),
@@ -87,8 +122,8 @@ export default function Home() {
       if (!active) return;
       setBusinesses(b);
       setJobs(j);
-      setOpportunities(o.slice(0, 3));
-      setLostFound(l.slice(0, 3));
+      setOpportunities(o);
+      setLostFound(l);
       setRequests(r);
     });
     return () => {
@@ -96,198 +131,133 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!requests?.length) return;
-    const t = setInterval(() => setFeedIndex((i) => (i + 1) % requests.length), 4200);
-    return () => clearInterval(t);
-  }, [requests]);
+  const cityOptions = useMemo(() => {
+    if (!businesses) return [{ name: "All Ghana", count: 0 }];
+    const counts = new Map<string, number>();
+    businesses.forEach((b) => counts.set(b.city, (counts.get(b.city) ?? 0) + 1));
+    return [
+      { name: "All Ghana", count: businesses.length },
+      ...Array.from(counts.entries())
+        .sort((a, z) => z[1] - a[1])
+        .map(([name, count]) => ({ name, count })),
+    ];
+  }, [businesses]);
 
-  const feedRequest = requests?.[feedIndex % (requests?.length ?? 1)];
+  const forYou = useMemo(() => {
+    if (!businesses) return null;
+    const list =
+      city === "All Ghana" ? businesses : businesses.filter((b) => b.city === city);
+    return [...list]
+      .sort((a, z) => Number(z.verified) - Number(a.verified) || z.rating - a.rating)
+      .slice(0, 8);
+  }, [businesses, city]);
+
+  const featured = useMemo(() => {
+    if (!businesses) return null;
+    return [...businesses]
+      .sort((a, z) => Number(z.verified) - Number(a.verified) || z.rating - a.rating)
+      .slice(0, 3);
+  }, [businesses]);
+
+  const pickCity = (c: string) => {
+    setCity(c);
+    try {
+      localStorage.setItem("ghh:city", c);
+    } catch {
+      /* private mode — keep in memory */
+    }
+  };
 
   return (
     <>
-      {/* ================================ HERO ================================ */}
+      {/* ============================ APP HOME HEADER ============================ */}
       <section className="relative overflow-hidden">
         <div className="hero-grid absolute inset-0" aria-hidden="true" />
-        <div
-          className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-brand-200/40 blur-3xl"
-          aria-hidden="true"
-        />
-        <div
-          className="absolute top-10 -right-24 h-80 w-80 rounded-full bg-gold-200/50 blur-3xl"
-          aria-hidden="true"
-        />
+        <div className="absolute -top-32 -left-24 h-96 w-96 rounded-full bg-brand-200/40 blur-3xl" aria-hidden="true" />
+        <div className="absolute top-10 -right-24 h-80 w-80 rounded-full bg-gold-200/50 blur-3xl" aria-hidden="true" />
 
-        <div className="relative mx-auto max-w-7xl px-4 pt-12 pb-16 sm:px-6 sm:pt-16 lg:px-8 lg:pt-20 lg:pb-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
-            {/* Left — headline + search */}
-            <div className="animate-fade-up">
-              <p className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3.5 py-1.5 text-xs font-bold tracking-wide text-brand-700 shadow-sm">
-                <span
-                  className="animate-pulse-dot h-2 w-2 rounded-full bg-gold-400"
-                  aria-hidden="true"
-                />
-                Ghana's help &amp; connection platform
+        <div className="relative mx-auto max-w-7xl px-4 pt-8 pb-8 sm:px-6 sm:pt-10 lg:px-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="animate-fade-up max-w-2xl">
+              <p className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-brand-600 uppercase">
+                <span className="kente inline-block h-1 w-8 rounded-full" aria-hidden="true" />
+                Akwaaba — good {dayPart}
               </p>
-
-              <h1 className="font-display mt-5 text-[2.5rem] leading-[1.08] font-extrabold tracking-tight text-ink-900 text-balance sm:text-5xl lg:text-[3.4rem]">
-                Whatever you need in{" "}
-                <span className="text-brand-600">Ghana</span>,{" "}
+              <h1 className="font-display mt-3 text-[2rem] leading-[1.1] font-extrabold tracking-tight text-ink-900 text-balance sm:text-4xl lg:text-[2.9rem]">
+                Whatever you need in <span className="text-brand-600">Ghana</span>,{" "}
                 <span className="relative inline-block">
                   start here.
                   <svg
                     viewBox="0 0 220 14"
-                    className="absolute -bottom-2 left-0 w-full text-gold-400"
+                    className="absolute -bottom-1.5 left-0 w-full text-gold-400"
                     aria-hidden="true"
                     preserveAspectRatio="none"
                   >
-                    <path
-                      d="M4 10.5C60 3.5 160 3.5 216 9.5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                    />
+                    <path d="M4 10.5C60 3.5 160 3.5 216 9.5" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
                   </svg>
                 </span>
               </h1>
-
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-ink-500 sm:text-lg">
+              <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
                 Find trusted businesses, services, jobs, opportunities and more — or simply
                 tell us what you need.
               </p>
-
-              <div className="mt-8 max-w-xl">
-                <SearchBar
-                  size="lg"
-                  placeholder={`Try “${searchExamples[example]}”`}
-                  ariaLabel="Search businesses, services and jobs"
-                />
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold tracking-wide text-ink-400 uppercase">
-                    Popular:
-                  </span>
-                  {popularSearches.map((term) => (
-                    <Link
-                      key={term}
-                      to={`/find-help?q=${encodeURIComponent(term)}`}
-                      className="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                    >
-                      {term}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Button to="/post-request" variant="gold" size="lg">
-                  <Megaphone className="h-5 w-5" aria-hidden="true" />
-                  I NEED SOMETHING
-                </Button>
-                <Button to="/businesses#list-my-business" variant="outline" size="lg">
-                  <Store className="h-5 w-5" aria-hidden="true" />
-                  LIST MY BUSINESS
-                </Button>
-              </div>
             </div>
 
-            {/* Right — hero image + live request feed */}
-            <div className="relative mx-auto w-full max-w-md lg:max-w-[30rem]">
-              <div
-                className="absolute inset-x-4 top-4 bottom-0 -rotate-3 rounded-3xl border border-brand-100 bg-brand-50/70"
-                aria-hidden="true"
-              />
-              <div
-                className="absolute inset-x-4 top-4 bottom-0 rotate-2 rounded-3xl border border-gold-200 bg-gold-100/60"
-                aria-hidden="true"
-              />
+            <button
+              type="button"
+              onClick={() => setCityOpen(true)}
+              className="animate-fade-up group flex items-center gap-2.5 rounded-xl border border-ink-200 bg-white px-4 py-3 text-left shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              aria-label={`Change location. Current: ${city}`}
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-100 text-gold-700 ring-1 ring-inset ring-gold-200">
+                <MapPin className="h-4.5 w-4.5" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-[10px] font-bold tracking-[0.12em] text-ink-400 uppercase">
+                  Your area
+                </span>
+                <span className="font-display block text-sm font-bold text-ink-900">{city}</span>
+              </span>
+              <ChevronDown className="h-4 w-4 text-ink-400 transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
+            </button>
+          </div>
 
-              <div className="relative">
-                <figure className="relative overflow-hidden rounded-3xl shadow-lift ring-1 ring-ink-900/5">
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img
-                      src={media.heroElectrician}
-                      alt="Kwabena, a verified electrician on Ghana Help Hub, holding his toolbox in Amasaman"
-                      className="animate-kenburns h-full w-full object-cover"
-                      loading="eager"
-                    />
-                  </div>
-                  <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-ink-900/85 via-ink-900/40 to-transparent p-4 pt-14">
-                    <span>
-                      <span className="font-display block text-sm font-bold text-white">
-                        Kwabena Mensah — Electrician
-                      </span>
-                      <span className="mt-0.5 block text-[11px] font-semibold text-ink-300">
-                        Amasaman, Greater Accra · replies on WhatsApp
-                      </span>
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
-                      <BadgeCheck className="h-3.5 w-3.5 text-gold-400" aria-hidden="true" />
-                      Verified
-                    </span>
-                  </figcaption>
-                </figure>
-
-                <div
-                  className="animate-float absolute -top-4 -right-3 hidden items-center gap-2 rounded-xl border border-gold-200 bg-white px-3 py-2 shadow-lift sm:flex"
-                  aria-hidden="true"
+          <div className="animate-fade-up mt-6 max-w-2xl [animation-delay:120ms]">
+            <SearchBar
+              size="lg"
+              placeholder={`Try “${searchExamples[example]}”`}
+              ariaLabel="Search businesses, services and jobs"
+            />
+            <div className="mt-3.5 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold tracking-wide text-ink-400 uppercase">
+                Popular:
+              </span>
+              {popularSearches.map((term) => (
+                <Link
+                  key={term}
+                  to={`/find-help?q=${encodeURIComponent(term)}`}
+                  className="rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:text-brand-700 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
-                  <BadgeCheck className="h-4 w-4 text-brand-600" />
-                  <span className="text-xs font-bold text-ink-700">Verified match found</span>
-                </div>
-                <div
-                  className="animate-float absolute top-16 -left-4 hidden items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 shadow-lift [animation-delay:1.4s] sm:flex"
-                  aria-hidden="true"
-                >
-                  <MessageCircle className="h-4 w-4 text-brand-600" />
-                  <span className="text-xs font-bold text-ink-700">Replied on WhatsApp</span>
-                </div>
-
-                {/* Live feed overlapping the image */}
-                <div className="relative z-10 -mt-12 px-3 sm:px-6">
-                  <div className="mb-2 flex items-center justify-between px-1">
-                    <p className="flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-ink-500 uppercase">
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75 motion-reduce:animate-none" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
-                      </span>
-                      Live from the community
-                    </p>
-                    <span className="text-[11px] font-semibold text-ink-400">Sample data</span>
-                  </div>
-
-                  {feedRequest ? (
-                    <RequestCard
-                      key={feedRequest.id + feedIndex}
-                      request={feedRequest}
-                      featured
-                      className="animate-pop"
-                    />
-                  ) : (
-                    <div
-                      className="h-44 animate-pulse rounded-2xl border border-ink-100 bg-white"
-                      aria-hidden="true"
-                    />
-                  )}
-
-                  <div className="mt-3 flex items-center justify-center gap-1.5">
-                    {(requests ?? Array.from({ length: 5 })).map((_, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        aria-label={`Show request ${i + 1}`}
-                        onClick={() => setFeedIndex(i)}
-                        className={cn(
-                          "h-1.5 rounded-full transition-all duration-300",
-                          i === feedIndex % (requests?.length ?? 5)
-                            ? "w-6 bg-brand-600"
-                            : "w-1.5 bg-ink-200 hover:bg-ink-300"
-                        )}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+                  {term}
+                </Link>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <Link
+                to="/post-request"
+                className="group inline-flex items-center gap-1.5 text-sm font-extrabold text-gold-700 transition-colors hover:text-gold-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+              >
+                <Megaphone className="h-4 w-4" aria-hidden="true" />
+                I Need Something
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </Link>
+              <Link
+                to="/businesses#list-my-business"
+                className="group inline-flex items-center gap-1.5 text-sm font-extrabold text-brand-700 transition-colors hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+              >
+                <Store className="h-4 w-4" aria-hidden="true" />
+                List My Business
+              </Link>
             </div>
           </div>
         </div>
@@ -296,10 +266,7 @@ export default function Home() {
         <div className="marquee relative overflow-hidden border-y border-ink-800 bg-ink-900 py-3">
           <div className="marquee-track" aria-hidden="true">
             {[...marqueeNeeds, ...marqueeNeeds].map((need, i) => (
-              <span
-                key={i}
-                className="mx-5 flex shrink-0 items-center gap-3 text-[13px] font-semibold text-ink-300"
-              >
+              <span key={i} className="mx-5 flex shrink-0 items-center gap-3 text-[13px] font-semibold text-ink-300">
                 <span className="kente inline-block h-1 w-7 rounded-full" />
                 {need}
               </span>
@@ -309,30 +276,120 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================ CATEGORIES ============================ */}
-      <section className="bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Reveal>
-            <SectionHeader
-              eyebrow="Quick categories"
-              title="How can we help?"
-              description="Start with what you're looking for — we'll point you to the right people and opportunities."
-            />
-          </Reveal>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {categories.map((category, i) => (
-              <Reveal key={category.id} delay={Math.min(i, 7) * 60}>
-                <CategoryCard category={category} index={i} />
+      {/* ========================= CATEGORY TILES (app grid) ========================= */}
+      <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+        <Reveal>
+          <SectionHeader
+            eyebrow="Quick categories"
+            title="How can we help?"
+            action={{ label: "Find help", to: "/find-help" }}
+          />
+        </Reveal>
+        <Reveal delay={80}>
+          <nav aria-label="Help categories" className="grid grid-cols-4 gap-2.5 md:grid-cols-8">
+            {categories.map((category, i) => {
+              const Icon = category.icon;
+              return (
+                <Link
+                  key={category.id}
+                  to={category.to}
+                  className="group flex flex-col items-center gap-2 rounded-xl border border-ink-100 bg-white px-1 py-3.5 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  <span
+                    className={cn(
+                      "flex h-11 w-11 items-center justify-center rounded-full ring-1 ring-inset transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6",
+                      tileTints[i % tileTints.length]
+                    )}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="text-center text-[11px] leading-tight font-bold text-ink-700 group-hover:text-brand-700">
+                    {category.name}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+        </Reveal>
+
+        <Reveal delay={140} className="mt-7">
+          <BannerCarousel />
+        </Reveal>
+      </section>
+
+      {/* ========================= FOR YOU (dense listing grid) ========================= */}
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <Reveal>
+          <SectionHeader
+            eyebrow={city === "All Ghana" ? "Across Ghana" : `In ${city}`}
+            title="For you"
+            description="Trusted businesses and professionals — save the ones you like with the heart."
+            action={{ label: "See all", to: "/businesses" }}
+          />
+        </Reveal>
+        {forYou === null ? (
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4" aria-busy="true">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-52 animate-pulse rounded-xl border border-ink-100 bg-white" />
+            ))}
+          </div>
+        ) : forYou.length === 0 ? (
+          <EmptyState
+            title={`Nothing in ${city} yet`}
+            text="No listings match this area right now. Post what you need and we'll start matching."
+            action={
+              <Button to="/post-request" variant="gold" size="sm">
+                <Megaphone className="h-4 w-4" aria-hidden="true" />
+                Post what I need
+              </Button>
+            }
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+            {forYou.map((business, i) => (
+              <Reveal key={business.id} delay={Math.min(i % 4, 3) * 60}>
+                <ListingTile business={business} index={i} className="h-full" />
               </Reveal>
             ))}
           </div>
+        )}
+      </section>
+
+      {/* ========================= PEOPLE ARE ASKING (requests carousel) ========================= */}
+      <section className="bg-white py-12 sm:py-14">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Reveal>
+            <SectionHeader
+              eyebrow="Live demand"
+              title="People are asking"
+              description="Real needs posted by the community. Need the same thing? Add yours to the pile."
+              action={{ label: "Post a request", to: "/post-request" }}
+            />
+          </Reveal>
+          {requests ? (
+            <Reveal delay={80}>
+              <Carousel ariaLabel="Recent community requests">
+                {requests.map((request) => (
+                  <div key={request.id} className="w-[85%] max-w-[380px] shrink-0 snap-start sm:w-[350px]">
+                    <AskTile request={request} />
+                  </div>
+                ))}
+              </Carousel>
+            </Reveal>
+          ) : (
+            <div className="flex gap-4 overflow-hidden" aria-busy="true">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-48 w-[320px] shrink-0 animate-pulse rounded-xl border border-ink-100 bg-canvas" />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* =========================== I NEED SOMETHING =========================== */}
-      <section className="relative overflow-hidden py-16 sm:py-20">
+      {/* ========================= I NEED SOMETHING (feature) ========================= */}
+      <section className="relative overflow-hidden py-14 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
             <Reveal>
               <SectionHeader
                 eyebrow="I need something"
@@ -355,7 +412,7 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-7 flex flex-wrap items-center gap-3">
                 <Button to="/post-request" variant="gold" size="lg">
                   <Megaphone className="h-5 w-5" aria-hidden="true" />
                   Post what I need
@@ -372,12 +429,9 @@ export default function Home() {
 
             <Reveal delay={120}>
               <div className="relative mx-auto max-w-md">
-                <div
-                  className="absolute inset-0 rotate-3 rounded-2xl bg-brand-600/10"
-                  aria-hidden="true"
-                />
-                {feedRequest ? (
-                  <RequestCard request={feedRequest} featured className="relative" />
+                <div className="absolute inset-0 rotate-3 rounded-2xl bg-brand-600/10" aria-hidden="true" />
+                {requests?.[0] ? (
+                  <RequestCard request={requests[0]} featured className="relative" />
                 ) : (
                   <div className="relative h-44 animate-pulse rounded-2xl border border-ink-100 bg-white" />
                 )}
@@ -398,65 +452,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================ SEE IT IN ACTION ============================ */}
-      <section className="py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
-            <Reveal>
-              <SectionHeader
-                eyebrow="Watch"
-                title="See Ghana Help Hub in action"
-                description="From “I need…” to a WhatsApp reply — this is the flow we're building for every town in Ghana."
-                className="mb-6 md:mb-0"
-              />
-              <ul className="space-y-3.5">
-                {[
-                  { icon: PenLine, text: "Tell us what you need — in your own words." },
-                  { icon: Compass, text: "Get matched with real people and listings nearby." },
-                  { icon: MessageCircle, text: "Connect directly on WhatsApp or a phone call." },
-                ].map(({ icon: Icon, text }) => (
-                  <li key={text} className="flex items-center gap-3 text-[15px] font-medium text-ink-600">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 ring-1 ring-inset ring-brand-100">
-                      <Icon className="h-4 w-4 text-brand-600" aria-hidden="true" />
-                    </span>
-                    {text}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8">
-                <Button to="/post-request" variant="gold" size="lg">
-                  <Megaphone className="h-5 w-5" aria-hidden="true" />
-                  Try it — I need something
-                </Button>
-              </div>
-            </Reveal>
-            <Reveal delay={140}>
-              <DemoVideo
-                src={media.demoVideo}
-                poster={media.appHands}
-                title="The GHH demo reel"
-                note="Sample footage · 15 sec"
-              />
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================= FEATURED BUSINESSES ========================= */}
-      <section className="bg-white py-16 sm:py-20">
+      {/* ========================= FEATURED PROS ========================= */}
+      <section className="bg-white py-12 sm:py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <SectionHeader
               eyebrow="Featured"
-              title="Find trusted businesses & professionals"
-              description="Electricians, mechanics, photographers, tutors and more — with verified profiles and direct WhatsApp contact."
+              title="Top-rated pros"
+              description="Verified profiles with direct WhatsApp contact."
               action={{ label: "View all businesses", to: "/businesses" }}
             />
           </Reveal>
-          {businesses ? (
+          {featured ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {businesses.map((business, i) => (
-                <Reveal key={business.id} delay={Math.min(i, 5) * 70}>
+              {featured.map((business, i) => (
+                <Reveal key={business.id} delay={i * 70}>
                   <BusinessCard business={business} index={i} />
                 </Reveal>
               ))}
@@ -468,107 +478,110 @@ export default function Home() {
               ))}
             </div>
           )}
-          <div className="mt-14">
+          <div className="mt-12">
             <BusinessCta />
           </div>
         </div>
       </section>
 
-      {/* ================================ JOBS ================================ */}
-      <section className="py-16 sm:py-20">
+      {/* ========================= LATEST JOBS (carousel) ========================= */}
+      <section className="py-12 sm:py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <SectionHeader
               eyebrow="Jobs"
-              title="Latest opportunities"
-              description="Real openings posted by businesses across Ghana — filter by city, type and category."
+              title="Latest openings"
+              description="Swipe through new roles posted across Ghana."
               action={{ label: "Browse all jobs", to: "/jobs" }}
             />
           </Reveal>
           {jobs ? (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {jobs.map((job, i) => (
-                <Reveal key={job.id} delay={Math.min(i, 3) * 80}>
-                  <JobCard job={job} compact />
-                </Reveal>
-              ))}
-            </div>
+            <Reveal delay={80}>
+              <Carousel ariaLabel="Latest job openings">
+                {jobs.map((job) => (
+                  <div key={job.id} className="w-[85%] max-w-[380px] shrink-0 snap-start sm:w-[340px]">
+                    <JobCard job={job} compact />
+                  </div>
+                ))}
+              </Carousel>
+            </Reveal>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4" aria-busy="true">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-48 animate-pulse rounded-2xl border border-ink-100 bg-white" />
+            <div className="flex gap-4 overflow-hidden" aria-busy="true">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-44 w-[320px] shrink-0 animate-pulse rounded-xl border border-ink-100 bg-white" />
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* ============================ OPPORTUNITIES ============================ */}
-      <section className="bg-white py-16 sm:py-20">
+      {/* ========================= OPPORTUNITIES (carousel) ========================= */}
+      <section className="bg-white py-12 sm:py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <SectionHeader
               eyebrow="Opportunities"
               title="Scholarships, training, grants & more"
-              description="Discover opportunities for students, founders and professionals. All listings below are clearly marked sample data."
+              description="Clearly marked sample data for the demo."
               action={{ label: "See all opportunities", to: "/opportunities" }}
             />
           </Reveal>
           {opportunities ? (
-            <div className="grid gap-5 md:grid-cols-3">
-              {opportunities.map((opportunity, i) => (
-                <Reveal key={opportunity.id} delay={i * 80}>
-                  <OpportunityCard
-                    opportunity={opportunity}
-                    onView={() => navigate("/opportunities")}
-                  />
-                </Reveal>
-              ))}
-            </div>
+            <Reveal delay={80}>
+              <Carousel ariaLabel="Opportunities">
+                {opportunities.map((opportunity) => (
+                  <div key={opportunity.id} className="w-[88%] max-w-[400px] shrink-0 snap-start sm:w-[360px]">
+                    <OpportunityCard opportunity={opportunity} onView={() => navigate("/opportunities")} />
+                  </div>
+                ))}
+              </Carousel>
+            </Reveal>
           ) : (
-            <div className="grid gap-5 md:grid-cols-3" aria-busy="true">
+            <div className="flex gap-4 overflow-hidden" aria-busy="true">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-56 animate-pulse rounded-2xl border border-ink-100 bg-canvas" />
+                <div key={i} className="h-52 w-[340px] shrink-0 animate-pulse rounded-xl border border-ink-100 bg-canvas" />
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* ============================= LOST & FOUND ============================= */}
-      <section className="py-16 sm:py-20">
+      {/* ========================= LOST & FOUND (carousel) ========================= */}
+      <section className="py-12 sm:py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <SectionHeader
               eyebrow="Community"
               title="Lost something? Found something?"
-              description="Help reunite people with their belongings. Report what you've lost — or what you've found."
+              description="Help reunite people with their belongings."
             />
           </Reveal>
           <Reveal>
-            <div className="mb-8 flex flex-wrap gap-3">
-              <Button to="/lost-found?report=lost" variant="primary">
+            <div className="mb-6 flex flex-wrap gap-3">
+              <Button to="/lost-found?report=lost" variant="primary" size="sm">
                 <Flag className="h-4 w-4" aria-hidden="true" />
                 Report Lost Item
               </Button>
-              <Button to="/lost-found?report=found" variant="outline">
+              <Button to="/lost-found?report=found" variant="outline" size="sm">
                 <PackageSearch className="h-4 w-4" aria-hidden="true" />
                 Report Found Item
               </Button>
             </div>
           </Reveal>
           {lostFound ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {lostFound.map((item, i) => (
-                <Reveal key={item.id} delay={i * 80}>
-                  <LostFoundCard item={item} onReport={() => navigate("/lost-found")} />
-                </Reveal>
-              ))}
-            </div>
+            <Reveal delay={80}>
+              <Carousel ariaLabel="Lost and found items">
+                {lostFound.map((item) => (
+                  <div key={item.id} className="w-[85%] max-w-[360px] shrink-0 snap-start sm:w-[320px]">
+                    <LostFoundCard item={item} onReport={() => navigate("/lost-found")} />
+                  </div>
+                ))}
+              </Carousel>
+            </Reveal>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+            <div className="flex gap-4 overflow-hidden" aria-busy="true">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-64 animate-pulse rounded-2xl border border-ink-100 bg-white" />
+                <div key={i} className="h-60 w-[300px] shrink-0 animate-pulse rounded-xl border border-ink-100 bg-white" />
               ))}
             </div>
           )}
@@ -576,14 +589,10 @@ export default function Home() {
       </section>
 
       {/* ============================= HOW IT WORKS ============================= */}
-      <section className="bg-white py-16 sm:py-20">
+      <section className="bg-white py-14 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <SectionHeader
-              align="center"
-              eyebrow="How it works"
-              title="From “I need…” to “sorted” in three steps"
-            />
+            <SectionHeader align="center" eyebrow="How it works" title="From “I need…” to “sorted” in three steps" />
           </Reveal>
           <div className="relative grid gap-10 md:grid-cols-3 md:gap-8">
             <div
@@ -628,15 +637,12 @@ export default function Home() {
       </section>
 
       {/* ========================== RADIO CONNECTION ========================== */}
-      <section className="py-16 sm:py-20">
+      <section className="py-14 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="relative overflow-hidden rounded-3xl bg-brand-800 px-6 py-12 sm:px-12 sm:py-16">
               <div className="dark-grid absolute inset-0" aria-hidden="true" />
-              <div
-                className="absolute -top-24 -right-16 h-72 w-72 rounded-full bg-gold-400/15 blur-3xl"
-                aria-hidden="true"
-              />
+              <div className="absolute -top-24 -right-16 h-72 w-72 rounded-full bg-gold-400/15 blur-3xl" aria-hidden="true" />
               <div className="relative grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
                 <div>
                   <p className="mb-3 flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-gold-400 uppercase">
@@ -676,23 +682,15 @@ export default function Home() {
                       loading="lazy"
                     />
                   </div>
-                  <div
-                    className="absolute inset-0 bg-gradient-to-t from-brand-900/90 via-brand-900/25 to-transparent"
-                    aria-hidden="true"
-                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-900/90 via-brand-900/25 to-transparent" aria-hidden="true" />
                   <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-ink-900/70 px-3 py-1.5 backdrop-blur-sm">
                     <span className="relative flex h-2 w-2" aria-hidden="true">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75 motion-reduce:animate-none" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
                     </span>
-                    <span className="text-[11px] font-extrabold tracking-[0.18em] text-white uppercase">
-                      On air
-                    </span>
+                    <span className="text-[11px] font-extrabold tracking-[0.18em] text-white uppercase">On air</span>
                   </div>
-                  <div
-                    className="absolute right-5 bottom-4 flex items-end gap-1"
-                    aria-hidden="true"
-                  >
+                  <div className="absolute right-5 bottom-4 flex items-end gap-1" aria-hidden="true">
                     {[10, 18, 26, 38, 30, 46, 34, 22].map((h, i) => (
                       <span
                         key={i}
@@ -712,11 +710,69 @@ export default function Home() {
       </section>
 
       {/* =============================== FINAL CTA =============================== */}
-      <section className="bg-white py-16 sm:py-20">
+      <section className="bg-white py-14 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FinalCta />
         </div>
       </section>
+
+      <CityPicker
+        open={cityOpen}
+        onClose={() => setCityOpen(false)}
+        cities={cityOptions}
+        current={city}
+        onSelect={pickCity}
+      />
     </>
+  );
+}
+
+/* ------------------------- Request tile (app style) ------------------------- */
+
+function AskTile({ request }: { request: HelpRequest }) {
+  const { has, toggle } = useFavorites();
+  const saved = has(request.id);
+  const status = askStatus[request.status];
+
+  return (
+    <article className="relative flex h-full flex-col overflow-hidden rounded-xl border border-ink-100 bg-white p-4 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-lift">
+      <span className="kente absolute inset-x-0 top-0 h-1" aria-hidden="true" />
+      <div className="flex items-start justify-between gap-2 pt-1">
+        <Badge variant={status.variant}>{status.label}</Badge>
+        <HeartToggle
+          active={saved}
+          onToggle={() =>
+            toggle({
+              id: request.id,
+              title: request.title,
+              sub: `${request.location} · ${request.budget}`,
+              link: "/find-help",
+            })
+          }
+          label={saved ? `Remove ${request.title} from saved` : `Save ${request.title}`}
+        />
+      </div>
+      <h3 className="font-display mt-2.5 text-[15px] leading-snug font-bold text-ink-900">
+        {request.title}
+      </h3>
+      <p className="mt-1.5 flex items-baseline gap-1.5">
+        <span className="text-lg font-extrabold text-brand-700">{request.budget}</span>
+        <span className="text-[11px] font-bold tracking-wide text-ink-400 uppercase">budget</span>
+      </p>
+      <p className="mt-1 text-xs font-semibold text-ink-500">
+        {request.location} · {timeAgo(request.createdAt)}
+      </p>
+      <p className="mt-2 line-clamp-2 flex-1 text-[13px] leading-relaxed text-ink-500">
+        {request.description}
+      </p>
+      <Link
+        to={`/post-request?title=${encodeURIComponent(request.title)}`}
+        className="mt-3.5 inline-flex w-fit items-center gap-1.5 rounded-lg bg-gold-100 px-3.5 py-2 text-xs font-extrabold text-ink-900 ring-1 ring-inset ring-gold-200 transition-all duration-200 hover:-translate-y-0.5 hover:bg-gold-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        <Megaphone className="h-3.5 w-3.5" aria-hidden="true" />
+        I need this too
+        <ArrowRight className="h-3 w-3" aria-hidden="true" />
+      </Link>
+    </article>
   );
 }
