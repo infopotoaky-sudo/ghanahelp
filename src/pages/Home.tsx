@@ -25,6 +25,8 @@ import Button from "../components/Button";
 import Reveal from "../components/Reveal";
 import BusinessCta from "../components/BusinessCta";
 import FinalCta from "../components/FinalCta";
+import DemoVideo from "../components/DemoVideo";
+import { media } from "../lib/media";
 import { categories, popularSearches } from "../data/categories";
 import { getFeaturedBusinesses } from "../services/businesses";
 import { getLatestJobs } from "../services/jobs";
@@ -159,7 +161,7 @@ export default function Home() {
                 <SearchBar
                   size="lg"
                   placeholder={`Try “${searchExamples[example]}”`}
-                  aria-label="Search businesses, services and jobs"
+                  ariaLabel="Search businesses, services and jobs"
                 />
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <span className="text-xs font-bold tracking-wide text-ink-400 uppercase">
@@ -189,73 +191,101 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right — live request feed */}
-            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+            {/* Right — hero image + live request feed */}
+            <div className="relative mx-auto w-full max-w-md lg:max-w-[30rem]">
               <div
-                className="absolute inset-0 -rotate-3 rounded-2xl border border-brand-100 bg-brand-50/70"
+                className="absolute inset-x-4 top-4 bottom-0 -rotate-3 rounded-3xl border border-brand-100 bg-brand-50/70"
                 aria-hidden="true"
               />
               <div
-                className="absolute inset-0 rotate-2 rounded-2xl border border-gold-200 bg-gold-100/60"
+                className="absolute inset-x-4 top-4 bottom-0 rotate-2 rounded-3xl border border-gold-200 bg-gold-100/60"
                 aria-hidden="true"
               />
 
               <div className="relative">
-                <div className="mb-3 flex items-center justify-between px-1">
-                  <p className="flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-ink-500 uppercase">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75 motion-reduce:animate-none" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
-                    </span>
-                    Live from the community
-                  </p>
-                  <span className="text-[11px] font-semibold text-ink-400">Sample data</span>
-                </div>
-
-                {feedRequest ? (
-                  <RequestCard
-                    key={feedRequest.id + feedIndex}
-                    request={feedRequest}
-                    featured
-                    className="animate-pop"
-                  />
-                ) : (
-                  <div
-                    className="h-44 animate-pulse rounded-2xl border border-ink-100 bg-white"
-                    aria-hidden="true"
-                  />
-                )}
-
-                <div className="mt-3 flex items-center justify-center gap-1.5">
-                  {(requests ?? Array.from({ length: 5 })).map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      aria-label={`Show request ${i + 1}`}
-                      onClick={() => setFeedIndex(i)}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all duration-300",
-                        i === feedIndex % (requests?.length ?? 5)
-                          ? "w-6 bg-brand-600"
-                          : "w-1.5 bg-ink-200 hover:bg-ink-300"
-                      )}
+                <figure className="relative overflow-hidden rounded-3xl shadow-lift ring-1 ring-ink-900/5">
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img
+                      src={media.heroElectrician}
+                      alt="Kwabena, a verified electrician on Ghana Help Hub, holding his toolbox in Amasaman"
+                      className="animate-kenburns h-full w-full object-cover"
+                      loading="eager"
                     />
-                  ))}
-                </div>
+                  </div>
+                  <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-ink-900/85 via-ink-900/40 to-transparent p-4 pt-14">
+                    <span>
+                      <span className="font-display block text-sm font-bold text-white">
+                        Kwabena Mensah — Electrician
+                      </span>
+                      <span className="mt-0.5 block text-[11px] font-semibold text-ink-300">
+                        Amasaman, Greater Accra · replies on WhatsApp
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
+                      <BadgeCheck className="h-3.5 w-3.5 text-gold-400" aria-hidden="true" />
+                      Verified
+                    </span>
+                  </figcaption>
+                </figure>
 
                 <div
-                  className="animate-float absolute -top-5 -right-3 hidden items-center gap-2 rounded-xl border border-gold-200 bg-white px-3 py-2 shadow-lift sm:flex"
+                  className="animate-float absolute -top-4 -right-3 hidden items-center gap-2 rounded-xl border border-gold-200 bg-white px-3 py-2 shadow-lift sm:flex"
                   aria-hidden="true"
                 >
                   <BadgeCheck className="h-4 w-4 text-brand-600" />
                   <span className="text-xs font-bold text-ink-700">Verified match found</span>
                 </div>
                 <div
-                  className="animate-float absolute -bottom-5 -left-3 hidden items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 shadow-lift [animation-delay:1.2s] sm:flex"
+                  className="animate-float absolute top-16 -left-4 hidden items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 shadow-lift [animation-delay:1.4s] sm:flex"
                   aria-hidden="true"
                 >
                   <MessageCircle className="h-4 w-4 text-brand-600" />
                   <span className="text-xs font-bold text-ink-700">Replied on WhatsApp</span>
+                </div>
+
+                {/* Live feed overlapping the image */}
+                <div className="relative z-10 -mt-12 px-3 sm:px-6">
+                  <div className="mb-2 flex items-center justify-between px-1">
+                    <p className="flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-ink-500 uppercase">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75 motion-reduce:animate-none" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-500" />
+                      </span>
+                      Live from the community
+                    </p>
+                    <span className="text-[11px] font-semibold text-ink-400">Sample data</span>
+                  </div>
+
+                  {feedRequest ? (
+                    <RequestCard
+                      key={feedRequest.id + feedIndex}
+                      request={feedRequest}
+                      featured
+                      className="animate-pop"
+                    />
+                  ) : (
+                    <div
+                      className="h-44 animate-pulse rounded-2xl border border-ink-100 bg-white"
+                      aria-hidden="true"
+                    />
+                  )}
+
+                  <div className="mt-3 flex items-center justify-center gap-1.5">
+                    {(requests ?? Array.from({ length: 5 })).map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        aria-label={`Show request ${i + 1}`}
+                        onClick={() => setFeedIndex(i)}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all duration-300",
+                          i === feedIndex % (requests?.length ?? 5)
+                            ? "w-6 bg-brand-600"
+                            : "w-1.5 bg-ink-200 hover:bg-ink-300"
+                        )}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -363,6 +393,50 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================ SEE IT IN ACTION ============================ */}
+      <section className="py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
+            <Reveal>
+              <SectionHeader
+                eyebrow="Watch"
+                title="See Ghana Help Hub in action"
+                description="From “I need…” to a WhatsApp reply — this is the flow we're building for every town in Ghana."
+                className="mb-6 md:mb-0"
+              />
+              <ul className="space-y-3.5">
+                {[
+                  { icon: PenLine, text: "Tell us what you need — in your own words." },
+                  { icon: Compass, text: "Get matched with real people and listings nearby." },
+                  { icon: MessageCircle, text: "Connect directly on WhatsApp or a phone call." },
+                ].map(({ icon: Icon, text }) => (
+                  <li key={text} className="flex items-center gap-3 text-[15px] font-medium text-ink-600">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 ring-1 ring-inset ring-brand-100">
+                      <Icon className="h-4 w-4 text-brand-600" aria-hidden="true" />
+                    </span>
+                    {text}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8">
+                <Button to="/post-request" variant="gold" size="lg">
+                  <Megaphone className="h-5 w-5" aria-hidden="true" />
+                  Try it — I need something
+                </Button>
+              </div>
+            </Reveal>
+            <Reveal delay={140}>
+              <DemoVideo
+                src={media.demoVideo}
+                poster={media.appHands}
+                title="The GHH demo reel"
+                note="Sample footage · 15 sec"
+              />
             </Reveal>
           </div>
         </div>
@@ -593,17 +667,43 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div
-                  className="flex items-end justify-center gap-1.5 lg:justify-end lg:pr-6"
-                  aria-hidden="true"
-                >
-                  {[10, 18, 26, 38, 30, 46, 34, 22, 42, 28, 16, 36].map((h, i) => (
-                    <span
-                      key={i}
-                      className="animate-wave w-2 origin-bottom rounded-full bg-gold-400/90"
-                      style={{ height: `${h * 2.2}px`, animationDelay: `${i * 0.12}s` }}
+                <div className="relative overflow-hidden rounded-3xl shadow-lift ring-1 ring-white/15">
+                  <div className="aspect-[4/3] overflow-hidden lg:aspect-[5/4]">
+                    <img
+                      src={media.radioHost}
+                      alt="A radio host speaking into a studio microphone, live on air"
+                      className="animate-kenburns h-full w-full object-cover"
+                      loading="lazy"
                     />
-                  ))}
+                  </div>
+                  <div
+                    className="absolute inset-0 bg-gradient-to-t from-brand-900/90 via-brand-900/25 to-transparent"
+                    aria-hidden="true"
+                  />
+                  <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-ink-900/70 px-3 py-1.5 backdrop-blur-sm">
+                    <span className="relative flex h-2 w-2" aria-hidden="true">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75 motion-reduce:animate-none" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                    </span>
+                    <span className="text-[11px] font-extrabold tracking-[0.18em] text-white uppercase">
+                      On air
+                    </span>
+                  </div>
+                  <div
+                    className="absolute right-5 bottom-4 flex items-end gap-1"
+                    aria-hidden="true"
+                  >
+                    {[10, 18, 26, 38, 30, 46, 34, 22].map((h, i) => (
+                      <span
+                        key={i}
+                        className="animate-wave w-1.5 origin-bottom rounded-full bg-gold-400"
+                        style={{ height: `${h * 1.6}px`, animationDelay: `${i * 0.12}s` }}
+                      />
+                    ))}
+                  </div>
+                  <p className="font-display absolute bottom-4 left-5 max-w-[70%] text-sm font-bold text-white">
+                    “Call in with your need — we'll connect you.”
+                  </p>
                 </div>
               </div>
             </div>

@@ -11,6 +11,8 @@ import {
 import Button from "../components/Button";
 import Reveal from "../components/Reveal";
 import FinalCta from "../components/FinalCta";
+import DemoVideo from "../components/DemoVideo";
+import { media } from "../lib/media";
 import { usePageMeta } from "../hooks/usePageMeta";
 
 const values = [
@@ -99,7 +101,15 @@ export default function About() {
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-2">
           <Reveal>
-            <div className="h-full rounded-3xl border border-ink-100 bg-white p-7 shadow-card sm:p-9">
+            <div className="h-full overflow-hidden rounded-3xl border border-ink-100 bg-white p-7 shadow-card sm:p-9">
+              <div className="-mx-7 -mt-7 mb-6 overflow-hidden sm:-mx-9 sm:-mt-9 sm:mb-8">
+                <img
+                  src={media.workshop}
+                  alt="A Ghanaian tailor showing kente fabric to a smiling customer in his workshop"
+                  className="h-48 w-full object-cover transition-transform duration-700 hover:scale-105 sm:h-56"
+                  loading="lazy"
+                />
+              </div>
               <p className="text-xs font-bold tracking-[0.14em] text-brand-600 uppercase">What we are</p>
               <h2 className="font-display mt-2 text-2xl font-bold text-ink-900">
                 Not a marketplace. A starting point.
@@ -243,6 +253,16 @@ export default function About() {
               on fictional sample data. We don't claim real users, funding or partnerships —
               we're earning those one helpful connection at a time.
             </p>
+          </Reveal>
+
+          <Reveal className="mt-12">
+            <DemoVideo
+              src={media.demoVideoTwo}
+              poster={media.market}
+              title="The spirit we're building for"
+              note="Sample footage · 1 min"
+              className="mx-auto max-w-3xl"
+            />
           </Reveal>
         </div>
       </section>

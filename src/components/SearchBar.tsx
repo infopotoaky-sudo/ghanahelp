@@ -10,6 +10,8 @@ interface SearchBarProps {
   size?: "md" | "lg";
   className?: string;
   autoFocus?: boolean;
+  /** Accessible name for the search input */
+  ariaLabel?: string;
 }
 
 export default function SearchBar({
@@ -18,6 +20,7 @@ export default function SearchBar({
   size = "md",
   className,
   autoFocus,
+  ariaLabel = "Search query",
 }: SearchBarProps) {
   const [value, setValue] = useState(defaultValue);
   const navigate = useNavigate();
@@ -56,7 +59,7 @@ export default function SearchBar({
         autoFocus={autoFocus}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
-        aria-label="Search query"
+        aria-label={ariaLabel}
         className={cn(
           "min-w-0 flex-1 bg-transparent font-medium text-ink-900 outline-none placeholder:text-ink-400",
           size === "lg" ? "h-11 text-base" : "h-9 text-sm"

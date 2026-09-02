@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import BottomNav from "../components/BottomNav";
+import NeedHelpFloat from "../components/NeedHelpFloat";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -22,6 +23,7 @@ export default function MainLayout() {
       </main>
       <Footer />
       <BottomNav />
+      <NeedHelpFloat />
     </div>
   );
 }
