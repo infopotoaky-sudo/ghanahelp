@@ -5,9 +5,9 @@
  * "sample footage" in the UI.
  */
 export const media = {
-  /** Young Ghanaian electrician in green overalls — hero visual */
+  /** Young Ghanaian electrician in green overalls, smiling at camera — hero visual */
   heroElectrician:
-    "https://image.qwenlm.ai/generated-images/11672608-d852-4efa-b89c-6089d74c825f/_result.png",
+    "https://image.qwenlm.ai/generated-images/9677e3f4-d92e-4a7c-a63c-37aa956d3f79/_result.png",
   /** Radio host at a studio microphone — radio section */
   radioHost:
     "https://image.qwenlm.ai/generated-images/237360bf-0ca2-4306-bbd1-97c6002db775/_result.png",

@@ -18,6 +18,7 @@ import Reveal from "../components/Reveal";
 import { createRequest } from "../services/requests";
 import { requestCategories, sampleRequests } from "../data/requests";
 import type { HelpRequest, NewHelpRequest } from "../types";
+import { useSearchParams } from "react-router-dom";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { cn, formatGHS } from "../lib/utils";
 
@@ -31,7 +32,7 @@ interface FormState {
   consent: boolean;
 }
 
-const initialForm: FormState = {
+const blankForm: FormState = {
   title: "",
   category: "",
   location: "",
@@ -50,7 +51,11 @@ export default function PostRequest() {
     "Tell Ghana Help Hub what you need — a service, a job, a room, an opportunity — and get connected."
   );
 
-  const [form, setForm] = useState<FormState>(initialForm);
+  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState<FormState>(() => {
+    const prefill = searchParams.get("title");
+    return prefill ? { ...blankForm, title: prefill.slice(0, 80) } : blankForm;
+  });
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [imageName, setImageName] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -119,7 +124,7 @@ export default function PostRequest() {
   };
 
   const reset = () => {
-    setForm(initialForm);
+    setForm(blankForm);
     setErrors({});
     setImageName(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);

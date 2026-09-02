@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import {
   HeartHandshake,
   ShieldCheck,
@@ -7,6 +8,7 @@ import {
   Database,
   Rocket,
   CheckCircle2,
+  ArrowRight,
 } from "lucide-react";
 import Button from "../components/Button";
 import Reveal from "../components/Reveal";
@@ -252,6 +254,19 @@ export default function About() {
               <span className="font-bold text-ink-700">A note on honesty:</span> this demo runs
               on fictional sample data. We don't claim real users, funding or partnerships —
               we're earning those one helpful connection at a time.
+            </p>
+          </Reveal>
+
+          <Reveal delay={80}>
+            <p className="mt-4 text-center text-sm font-semibold text-ink-500">
+              Wondering how this stays sustainable?{" "}
+              <Link
+                to="/how-we-earn"
+                className="group inline-flex items-center gap-1 font-bold text-brand-700 transition-colors hover:text-brand-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                See how GHH makes money
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </Link>
             </p>
           </Reveal>
 
