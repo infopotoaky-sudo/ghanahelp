@@ -42,14 +42,14 @@ export default function Footer() {
             </p>
             <div className="mt-5 flex items-center gap-2">
               {socials.map(({ label, icon: Icon }) => (
-                <a
+                <Link
                   key={label}
-                  href="/contact"
+                  to="/contact"
                   aria-label={`${label} (coming soon)`}
                   className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink-800 text-ink-300 transition-all duration-200 hover:bg-brand-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400"
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
-                </a>
+                </Link>
               ))}
             </div>
           </div>

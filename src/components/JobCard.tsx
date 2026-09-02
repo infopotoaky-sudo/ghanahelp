@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Banknote, Briefcase, Clock, MapPin, ArrowRight } from "lucide-react";
 import type { Job } from "../types";
 import { timeAgo } from "../lib/utils";
@@ -10,8 +11,8 @@ interface JobCardProps {
 
 export default function JobCard({ job, compact = false }: JobCardProps) {
   return (
-    <a
-      href={`/jobs/${job.id}`}
+    <Link
+      to={`/jobs/${job.id}`}
       className="group flex flex-col rounded-2xl border border-ink-100 bg-white p-5 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
     >
       <div className="flex items-start justify-between gap-3">
@@ -52,6 +53,6 @@ export default function JobCard({ job, compact = false }: JobCardProps) {
           <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
         </span>
       </div>
-    </a>
+    </Link>
   );
 }

@@ -257,3 +257,34 @@ export const businessCategories = Array.from(
 export const businessCities = Array.from(
   new Set(businesses.map((b) => b.city))
 ).sort((a, b) => a.localeCompare(b));
+
+/* ------------------------- Sample reviews (demo) ------------------------- */
+
+import type { Review } from "../types";
+import { daysAgo as reviewDaysAgo } from "../lib/utils";
+
+/**
+ * A small pool of clearly-fictional review snippets. The service picks a
+ * deterministic slice per business so profiles feel alive without inventing
+ * real customer claims about real people.
+ */
+const reviewPool: Array<Omit<Review, "id" | "date">> = [
+  { author: "Kwame A.", rating: 5, text: "Responded quickly on WhatsApp, gave a clear quote before starting and finished the same day. Exactly what I needed." },
+  { author: "Abena S.", rating: 5, text: "Professional from start to finish. Explained the problem in a way I could understand and charged what was agreed." },
+  { author: "Yaw B.", rating: 4, text: "Good work and fair pricing. Had to reschedule once, but communicated properly and the result was solid." },
+  { author: "Efua M.", rating: 5, text: "Found them through a request I posted. They called within the hour and sorted everything before the weekend." },
+  { author: "Kojo D.", rating: 4, text: "Neat, polite and honest. Showed me the replaced parts and gave a short warranty on the work." },
+  { author: "Ama K.", rating: 5, text: "I've recommended them to two neighbours already. Reliable and easy to deal with." },
+];
+
+export function reviewsForBusiness(businessId: string, count = 3): Review[] {
+  const seed = businessId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return Array.from({ length: count }).map((_, i) => {
+    const pick = reviewPool[(seed + i * 2) % reviewPool.length];
+    return {
+      id: `${businessId}-review-${i + 1}`,
+      ...pick,
+      date: reviewDaysAgo(6 + ((seed + i * 9) % 40)),
+    };
+  });
+}
